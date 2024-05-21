@@ -223,3 +223,6 @@ if prompt:
                     st.error("No summary text found in API response.")
             else:
                 st.error("Empty or invalid response received from summarization API.")
+
+# Add a footer
+st.markdown("Made with ❤️ by **Shubham Gupta**")
