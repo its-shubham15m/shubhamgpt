@@ -3,21 +3,20 @@ import streamlit as st
 
 API_URL = "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium"
 
-def generate_response(prompt):
+
+def generate_response(prompt, api_key):
     try:
-        # Fetch API key from Streamlit secrets
-        api_key = st.secrets["api_key"]
         headers = {"Authorization": f"Bearer {api_key}"}
-        
+
         # Prepare payload for the model API
         payload = {
             "inputs": prompt
         }
-        
+
         # Make POST request to API
         response = requests.post(API_URL, headers=headers, json=payload)
         response.raise_for_status()  # Raise exception for HTTP errors
-        
+
         # Parse JSON response
         if response.status_code == 200:
             json_response = response.json()
@@ -37,10 +36,8 @@ def generate_response(prompt):
                 "error": f"Request failed with status code {response.status_code}",
                 "details": response.text
             }
-    
+
     except requests.exceptions.RequestException as e:
         return {"error": f"Request error: {e}"}
-    except KeyError as e:
-        return {"error": "API key not found. Please check your secrets.toml configuration."}
     except Exception as e:
         return {"error": f"Unexpected error: {e}"}

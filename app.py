@@ -14,6 +14,7 @@ st.set_page_config(
 
 st.title("सुभम GPT")
 
+
 def load_css():
     css_file = os.path.join("assets/styles.css")
     with open(css_file, "r") as f:
@@ -93,14 +94,27 @@ def initialize_model_states():
     if "messages" not in st.session_state.model_states[current_model]:
         st.session_state.model_states[current_model]["messages"] = []
 
+
 # Initialize model states if not already present
 initialize_model_states()
 
-# Sidebar for model selection
+# Sidebar for model selection and API key input
 st.sidebar.image("assets/logo.png")
 st.sidebar.title("Shubham-GPT")
 st.sidebar.subheader("Select GPT-Model")
-model_option = st.sidebar.radio("Choose a model:", ("Text-GenerationLLM", "Image Generation", "Text Summarization", "Dialogue Generation", "Question Answering"))
+
+# User input for API key
+api_key = st.sidebar.text_input("Enter your Hugging Face API Key", type="password")
+if not api_key:
+    st.sidebar.warning("Please enter your Hugging Face API key to continue.")
+else:
+    # Button to submit API key
+    if st.sidebar.button("Submit API Key"):
+        # Logic to save API key and proceed
+        st.sidebar.success("API Key submitted successfully!")
+
+model_option = st.sidebar.radio("Choose a model:", (
+"Text-GenerationLLM", "Image Generation", "Text Summarization", "Dialogue Generation", "Question Answering"))
 
 # Update session state based on selected model
 if "current_model" not in st.session_state:
@@ -109,7 +123,7 @@ if "current_model" not in st.session_state:
 if model_option != st.session_state.current_model:
     if model_option not in st.session_state.model_states:
         st.session_state.model_states[model_option] = {"messages": [], "chat_history_ids": None}
-    
+
     st.session_state.current_model = model_option
 
 # Add headings for each model
@@ -122,7 +136,8 @@ if model_option == "Text-GenerationLLM":
 elif model_option == "Image Generation":
     st.header("Image Generation Model")
     st.caption("powered by 'stabilityai/stable-diffusion-xl-base-1.0' & 'runwayml/stable-diffusion-v1-5'")
-    st.sidebar.image_model_option = st.sidebar.selectbox("Choose an image generation model:", ("Stable Diffusion XL", "Stable Diffusion v1.5"))
+    st.sidebar.image_model_option = st.sidebar.selectbox("Choose an image generation model:",
+                                                         ("Stable Diffusion XL", "Stable Diffusion v1.5"))
 elif model_option == "Text Summarization":
     st.header("Text Summarization Model")
     st.caption("powered by facebook/bart-large-cnn")
@@ -152,37 +167,35 @@ if prompt:
 
     if model_option == "Dialogue Generation":
         # Generate a response using the dialogue generation model
-        response = generate_response(prompt)
-        
+        response = generate_response(prompt, api_key)
+
         # Display assistant message in chat message container
         with st.chat_message("assistant"):
             st.markdown(response)
-        
+
         # Add assistant response to chat history
         st.session_state.model_states[model_option]["messages"].append({"role": "assistant", "content": response})
 
     elif model_option == "Question Answering":
         # Assume the context is the concatenation of all previous messages
-        context = " ".join([msg["content"] for msg in st.session_state.model_states[model_option]["messages"] if msg["role"] == "user"])
-        response = get_answer(prompt, context)
-        
+        context = " ".join([msg["content"] for msg in st.session_state.model_states[model_option]["messages"] if
+                            msg["role"] == "user"])
+        response = get_answer(prompt, context, api_key)
+
         # Display assistant message in chat message container
         with st.chat_message("assistant"):
             st.markdown(response)
-        
+
         # Add assistant response to chat history
         st.session_state.model_states[model_option]["messages"].append({"role": "assistant", "content": response})
 
     elif model_option == "Image Generation":
-        if not st.secrets.api_key:
-            st.info("Please add your Hugging Face Token to continue.")
-            st.stop()
-
         # Generate image based on the prompt
-        image, filename = generate_image(prompt, st.secrets.api_key, st.sidebar.image_model_option)
+        image, filename = generate_image(prompt, api_key, st.sidebar.image_model_option)
         if image:
             msg = f'Here is your image related to "{prompt}"'
-            st.session_state.model_states[model_option]["messages"].append({"role": "assistant", "content": msg, "prompt": prompt, "image": image})
+            st.session_state.model_states[model_option]["messages"].append(
+                {"role": "assistant", "content": msg, "prompt": prompt, "image": image})
             st.chat_message("assistant").write(msg)
             st.chat_message("assistant").image(image, caption=prompt, use_column_width=True)
 
@@ -200,20 +213,20 @@ if prompt:
 
     elif model_option == "Text-GenerationLLM":
         # Generate response using Text-GenerationLLM model
-        text_response = generate_text_response(prompt)
-        
+        text_response = generate_text_response(prompt, api_key)
+
         # Display assistant message in chat message container
         with st.chat_message("assistant"):
             st.markdown(text_response)
-        
+
         # Add assistant response to chat history
         st.session_state.model_states[model_option]["messages"].append({"role": "assistant", "content": text_response})
-    
+
     elif model_option == "Text Summarization":
         if prompt:
             # Generate text summarization
-            summarization_result = summarization_text({"inputs": prompt})
-        
+            summarization_result = summarization_text(prompt, api_key)
+
             # Check if summarization was successful
             if isinstance(summarization_result, list) and len(summarization_result) > 0:
                 first_result = summarization_result[0]  # Assuming you only need the first result
@@ -222,9 +235,10 @@ if prompt:
                     # Display assistant message in chat message container
                     with st.chat_message("assistant"):
                         st.markdown(summary_text)
-                
+
                     # Add assistant response to chat history
-                    st.session_state.model_states[model_option]["messages"].append({"role": "assistant", "content": summary_text})
+                    st.session_state.model_states[model_option]["messages"].append(
+                        {"role": "assistant", "content": summary_text})
                 else:
                     st.error("No summary text found in API response.")
             else:
