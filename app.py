@@ -6,6 +6,12 @@ from text_to_image import generate_image
 from text_generation import generate_text_response
 from summarization import summarization_text
 
+st.set_page_config(
+    page_title="ShubhamGPT",
+    page_icon="assets/fav.png",
+    layout="wide"
+)
+
 st.title("सुभम GPT")
 
 def load_css():
